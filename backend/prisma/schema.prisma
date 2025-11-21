@@ -1,0 +1,126 @@
+// Prisma schema for Telegram client
+// generator client required for Prisma Client
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           Int       @id @default(autoincrement())
+  email        String    @unique
+  passwordHash String
+  role         Role
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  userCabinets UserCabinet[]
+}
+
+enum Role {
+  admin
+  manager
+}
+
+model Cabinet {
+  id           Int            @id @default(autoincrement())
+  name         String
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  userCabinets UserCabinet[]
+  accounts     TelegramAccount[]
+}
+
+model UserCabinet {
+  id         Int      @id @default(autoincrement())
+  user       User     @relation(fields: [userId], references: [id])
+  userId     Int
+  cabinet    Cabinet  @relation(fields: [cabinetId], references: [id])
+  cabinetId  Int
+}
+
+model TelegramAccount {
+  id                  Int       @id @default(autoincrement())
+  cabinet             Cabinet   @relation(fields: [cabinetId], references: [id])
+  cabinetId           Int
+  phone               String
+  telegramUserId      String?
+  sessionData         String?
+  displayName         String?
+  status              AccountStatus @default(active)
+  noFirstMessagesUntil DateTime?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  chats               Chat[]
+  messages            Message[]
+  accountDailyLimits  AccountDailyLimit[]
+}
+
+enum AccountStatus {
+  active
+  paused
+  risk
+  error
+}
+
+model Chat {
+  id                Int       @id @default(autoincrement())
+  telegramAccount   TelegramAccount @relation(fields: [telegramAccountId], references: [id])
+  telegramAccountId Int
+  chatId            String
+  title             String?
+  isPrivate         Boolean   @default(true)
+  lastMessageText   String?
+  lastMessageAt     DateTime?
+  chatStatus        ChatStatus @default(not_contacted)
+  messages          Message[]
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+}
+
+enum ChatStatus {
+  not_contacted
+  first_sent
+  responded
+}
+
+model Message {
+  id                Int       @id @default(autoincrement())
+  telegramAccount   TelegramAccount @relation(fields: [telegramAccountId], references: [id])
+  telegramAccountId Int
+  chat              Chat      @relation(fields: [chatId], references: [id])
+  chatId            Int
+  direction         MessageDirection
+  telegramMessageId String?
+  fromName          String?
+  text              String?
+  rawPayload        Json?
+  sentAt            DateTime
+  createdAt         DateTime  @default(now())
+}
+
+enum MessageDirection {
+  in
+  out
+}
+
+model AccountDailyLimit {
+  id                Int       @id @default(autoincrement())
+  telegramAccount   TelegramAccount @relation(fields: [telegramAccountId], references: [id])
+  telegramAccountId Int
+  date              DateTime
+  firstMessagesSent Int       @default(0)
+  maxFirstPerDay    Int       @default(20)
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+}
+
+model CrmEvent {
+  id          Int      @id @default(autoincrement())
+  direction   MessageDirection
+  payload     Json
+  createdAt   DateTime @default(now())
+}
