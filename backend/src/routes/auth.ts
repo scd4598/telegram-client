@@ -1,6 +1,7 @@
 import { Router } from 'express';
-import { PrismaClient, Role } from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
 import { createAuthService } from '../services/authService';
+import { registerSchema, loginSchema, refreshTokenSchema } from '../validation/schemas';
 
 export default function authRouter(prisma: PrismaClient) {
   const router = Router();
@@ -8,9 +9,12 @@ export default function authRouter(prisma: PrismaClient) {
 
   router.post('/register', async (req, res, next) => {
     try {
-      const { email, password, role } = req.body;
-      const created = await authService.register(email, password, role as Role);
-      res.json(created);
+      const parsed = registerSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ message: 'Validation error', errors: parsed.error.flatten().fieldErrors });
+      }
+      const created = await authService.register(parsed.data.email, parsed.data.password);
+      res.json({ id: created.id, email: created.email, role: created.role });
     } catch (err) {
       next(err);
     }
@@ -18,8 +22,24 @@ export default function authRouter(prisma: PrismaClient) {
 
   router.post('/login', async (req, res, next) => {
     try {
-      const { email, password } = req.body;
-      const tokens = await authService.login(email, password);
+      const parsed = loginSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ message: 'Validation error', errors: parsed.error.flatten().fieldErrors });
+      }
+      const tokens = await authService.login(parsed.data.email, parsed.data.password);
+      res.json(tokens);
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  router.post('/refresh', async (req, res, next) => {
+    try {
+      const parsed = refreshTokenSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ message: 'Validation error' });
+      }
+      const tokens = await authService.refreshToken(parsed.data.refreshToken);
       res.json(tokens);
     } catch (err) {
       next(err);
