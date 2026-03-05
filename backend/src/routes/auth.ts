@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { createAuthService } from '../services/authService';
-import { registerSchema, loginSchema } from '../validation/schemas';
+import { registerSchema, loginSchema, refreshTokenSchema } from '../validation/schemas';
 
 export default function authRouter(prisma: PrismaClient) {
   const router = Router();
@@ -27,6 +27,19 @@ export default function authRouter(prisma: PrismaClient) {
         return res.status(400).json({ message: 'Validation error', errors: parsed.error.flatten().fieldErrors });
       }
       const tokens = await authService.login(parsed.data.email, parsed.data.password);
+      res.json(tokens);
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  router.post('/refresh', async (req, res, next) => {
+    try {
+      const parsed = refreshTokenSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ message: 'Validation error' });
+      }
+      const tokens = await authService.refreshToken(parsed.data.refreshToken);
       res.json(tokens);
     } catch (err) {
       next(err);

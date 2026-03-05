@@ -1,6 +1,10 @@
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
+import helmet from 'helmet';
+import compression from 'compression';
+import morgan from 'morgan';
+import rateLimit from 'express-rate-limit';
 import http from 'http';
 import { Server } from 'socket.io';
 import jwt from 'jsonwebtoken';
@@ -25,6 +29,25 @@ const io = new Server(server, {
   cors: {
     origin: config.corsOrigin,
   },
+});
+
+// Security & utility middleware
+app.use(helmet());
+app.use(compression());
+app.use(morgan('combined'));
+app.use(cors({ origin: config.corsOrigin }));
+app.use(express.json());
+
+// Rate limit auth endpoints
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 15,
+  message: { message: 'Too many requests, please try again later' },
+});
+
+// Health check
+app.get('/api/health', (_req, res) => {
+  res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
 // Socket.IO authentication middleware
@@ -71,12 +94,10 @@ const telegramManager = createTelegramManager(prisma, io);
 
 authMiddleware.configure(prisma);
 
-app.use(cors({ origin: config.corsOrigin }));
-app.use(express.json());
 app.set('io', io);
 app.set('telegramManager', telegramManager);
 
-app.use('/api/auth', authRouter(prisma));
+app.use('/api/auth', authLimiter, authRouter(prisma));
 app.use('/api/cabinets', cabinetRouter(prisma));
 app.use('/api/telegram/accounts', telegramAccountsRouter(prisma, telegramManager));
 app.use('/api/chats', chatRouter(prisma, telegramManager));
@@ -85,6 +106,27 @@ app.use(errorHandler);
 
 const port = config.port;
 server.listen(port, async () => {
-  await telegramManager.bootstrapActiveAccounts();
-  console.log(`Server started on port ${port}`);
+  try {
+    await prisma.$connect();
+    console.log('Database connected');
+    await telegramManager.bootstrapActiveAccounts();
+    console.log(`Server started on port ${port}`);
+  } catch (err) {
+    console.error('Failed to start server:', err);
+    process.exit(1);
+  }
 });
+
+// Graceful shutdown
+function shutdown() {
+  console.log('Shutting down...');
+  server.close(async () => {
+    await telegramManager.disconnectAll();
+    await prisma.$disconnect();
+    process.exit(0);
+  });
+  setTimeout(() => process.exit(1), 10000);
+}
+
+process.on('SIGTERM', shutdown);
+process.on('SIGINT', shutdown);

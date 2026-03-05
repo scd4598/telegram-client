@@ -20,9 +20,9 @@ export const config = {
     return process.env.CORS_ORIGIN || 'http://localhost:5173';
   },
   get telegramApiId() {
-    return process.env.TELEGRAM_API_ID || '';
+    return Number(requireEnv('TELEGRAM_API_ID'));
   },
   get telegramApiHash() {
-    return process.env.TELEGRAM_API_HASH || '';
+    return requireEnv('TELEGRAM_API_HASH');
   },
 };

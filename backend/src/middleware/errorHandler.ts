@@ -1,6 +1,17 @@
 import { Request, Response, NextFunction } from 'express';
 
-const SAFE_ERRORS = ['Invalid credentials', 'Daily limit reached', 'Chat not found', 'Account not found', 'Limit exceeded'];
+const SAFE_ERRORS = [
+  'Invalid credentials',
+  'Daily limit reached',
+  'Chat not found',
+  'Account not found',
+  'Limit exceeded',
+  'Invalid refresh token',
+  'Phone code expired',
+  'Phone code invalid',
+  'Flood wait',
+  'Session revoked',
+];
 
 export function errorHandler(err: Error, _req: Request, res: Response, _next: NextFunction) {
   console.error(err);

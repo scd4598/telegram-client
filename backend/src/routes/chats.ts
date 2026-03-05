@@ -97,5 +97,31 @@ export default function chatRouter(prisma: PrismaClient, telegramManager: Return
     }
   });
 
+  router.post('/:id/sync-messages', async (req, res, next) => {
+    try {
+      const paramParsed = idParam.safeParse(req.params);
+      if (!paramParsed.success) {
+        return res.status(400).json({ message: 'Invalid chat id' });
+      }
+      const chatId = Number(paramParsed.data.id);
+      const authReq = req as AuthRequest;
+      if (!authReq.user) return res.status(401).json({ message: 'Unauthorized' });
+
+      const chat = await prisma.chat.findUnique({ where: { id: chatId } });
+      if (!chat) return res.status(404).json({ message: 'Chat not found' });
+
+      const hasAccess = await userCanAccessAccount(prisma, authReq.user.id, authReq.user.role, chat.telegramAccountId);
+      if (!hasAccess) {
+        return res.status(403).json({ message: 'Access denied' });
+      }
+
+      await telegramManager.syncMessages(chat.telegramAccountId, chatId);
+      const messages = await prisma.message.findMany({ where: { chatId }, orderBy: { sentAt: 'asc' } });
+      res.json(messages);
+    } catch (err) {
+      next(err);
+    }
+  });
+
   return router;
 }

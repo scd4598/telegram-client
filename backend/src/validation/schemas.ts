@@ -40,3 +40,11 @@ export const accountIdQuery = z.object({
 export const idParam = z.object({
   id: z.string().regex(/^\d+$/, 'id must be a number'),
 });
+
+export const refreshTokenSchema = z.object({
+  refreshToken: z.string().min(1),
+});
+
+export const confirmPasswordSchema = z.object({
+  password: z.string().min(1),
+});
