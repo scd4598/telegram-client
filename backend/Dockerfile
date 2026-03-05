@@ -26,7 +26,6 @@ RUN npx prisma generate
 
 COPY --from=build /app/dist ./dist
 
-# Run migrations and seed on startup, then start the server
 COPY docker-entrypoint.sh ./
 RUN chmod +x docker-entrypoint.sh
 
