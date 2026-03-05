@@ -1,14 +1,15 @@
 import { useState } from 'react';
 import { ApiClient } from '../api/client';
+import type { User } from '../types';
 
 interface Props {
-  onLogin: (token: string, user: any) => void;
+  onLogin: (token: string, user: User) => void;
   api: ApiClient;
 }
 
 export default function LoginForm({ onLogin, api }: Props) {
-  const [email, setEmail] = useState('admin@example.com');
-  const [password, setPassword] = useState('admin123');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
 
   const submit = async (e: React.FormEvent) => {

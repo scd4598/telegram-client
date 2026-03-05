@@ -3,17 +3,18 @@ import axios from 'axios';
 import { Socket } from 'socket.io-client';
 import MessageList from './MessageList';
 import { ApiClient } from '../api/client';
+import type { TelegramAccount, Chat, Message, NewMessageEvent } from '../types';
 
 interface Props {
   api: ApiClient;
   socket: Socket | null;
-  account: any;
+  account: TelegramAccount;
 }
 
 export default function ChatPanel({ api, socket, account }: Props) {
-  const [chats, setChats] = useState<any[]>([]);
-  const [selectedChat, setSelectedChat] = useState<any | null>(null);
-  const [messages, setMessages] = useState<any[]>([]);
+  const [chats, setChats] = useState<Chat[]>([]);
+  const [selectedChat, setSelectedChat] = useState<Chat | null>(null);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [text, setText] = useState('');
 
   useEffect(() => {
@@ -32,18 +33,19 @@ export default function ChatPanel({ api, socket, account }: Props) {
 
   useEffect(() => {
     if (!socket) return;
-    socket.on('new_message', (payload: any) => {
+    const handler = (payload: NewMessageEvent) => {
       if (payload.accountId === account.id && selectedChat && payload.chatId === selectedChat.id) {
         setMessages((prev) => [...prev, payload.message]);
       }
-    });
+    };
+    socket.on('new_message', handler);
     return () => {
-      socket.off('new_message');
+      socket.off('new_message', handler);
     };
   }, [socket, account, selectedChat]);
 
   const send = async () => {
-    if (!selectedChat) return;
+    if (!selectedChat || !text.trim()) return;
     const res = await axios.post(
       `${api.baseURL}/chats/${selectedChat.id}/messages`,
       { accountId: account.id, text },

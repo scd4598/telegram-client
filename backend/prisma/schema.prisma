@@ -40,6 +40,8 @@ model UserCabinet {
   userId     Int
   cabinet    Cabinet  @relation(fields: [cabinetId], references: [id])
   cabinetId  Int
+
+  @@unique([userId, cabinetId])
 }
 
 model TelegramAccount {
@@ -79,6 +81,8 @@ model Chat {
   messages          Message[]
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
+
+  @@unique([telegramAccountId, chatId])
 }
 
 enum ChatStatus {
@@ -116,6 +120,8 @@ model AccountDailyLimit {
   maxFirstPerDay    Int       @default(20)
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
+
+  @@unique([telegramAccountId, date])
 }
 
 model CrmEvent {

@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { PrismaClient, Role } from '@prisma/client';
+import { config } from '../config';
 
 type AuthRequest = Request & { user?: { id: number; role: Role } };
 
@@ -17,7 +18,7 @@ export const authMiddleware = {
     }
     const token = header.split(' ')[1];
     try {
-      const payload = jwt.verify(token, process.env.JWT_SECRET || 'secret') as {
+      const payload = jwt.verify(token, config.jwtSecret) as {
         userId: number;
         role: Role;
       };

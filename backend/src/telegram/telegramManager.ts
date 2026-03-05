@@ -14,6 +14,10 @@ export function createTelegramManager(prisma: PrismaClient, io: Server) {
   const crmIntegration = createCrmIntegrationService(prisma);
   const activeAccounts = new Map<number, TelegramAccountRuntime>();
 
+  async function emitToCabinet(cabinetId: number, event: string, data: unknown) {
+    io.to(`cabinet:${cabinetId}`).emit(event, data);
+  }
+
   async function bootstrapActiveAccounts() {
     const accounts = await prisma.telegramAccount.findMany({ where: { status: AccountStatus.active } });
     accounts.forEach((account) => {
@@ -48,12 +52,15 @@ export function createTelegramManager(prisma: PrismaClient, io: Server) {
       data: { lastMessageText: text, lastMessageAt: message.sentAt, chatStatus: limitOk.isFirst ? 'first_sent' : undefined },
     });
 
-    io.emit('new_message', { chatId, accountId, message });
+    await emitToCabinet(account.cabinetId, 'new_message', { chatId, accountId, message });
     await crmIntegration.onOutgoingMessage(message);
     return message;
   }
 
   async function handleIncomingUpdate(accountId: number, payload: { chatId: string; text?: string; fromName?: string }) {
+    const account = await prisma.telegramAccount.findUnique({ where: { id: accountId } });
+    if (!account) throw new Error('Account not found');
+
     let chat = await prisma.chat.findFirst({ where: { telegramAccountId: accountId, chatId: payload.chatId } });
     if (!chat) {
       chat = await prisma.chat.create({
@@ -79,7 +86,7 @@ export function createTelegramManager(prisma: PrismaClient, io: Server) {
       where: { id: chat.id },
       data: { lastMessageText: payload.text, lastMessageAt: message.sentAt, chatStatus: 'responded' },
     });
-    io.emit('new_message', { chatId: chat.id, accountId, message });
+    await emitToCabinet(account.cabinetId, 'new_message', { chatId: chat.id, accountId, message });
     await limiter.markResponded(chat.id);
     await crmIntegration.onIncomingMessage(message);
     return message;

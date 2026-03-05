@@ -1,7 +1,8 @@
 import { Router } from 'express';
 import { PrismaClient, Role } from '@prisma/client';
-import { authMiddleware } from '../middleware/authMiddleware';
+import { authMiddleware, AuthRequest } from '../middleware/authMiddleware';
 import { createCabinetService } from '../services/cabinetService';
+import { createCabinetSchema, assignUserSchema, idParam } from '../validation/schemas';
 
 export default function cabinetRouter(prisma: PrismaClient) {
   const router = Router();
@@ -11,7 +12,7 @@ export default function cabinetRouter(prisma: PrismaClient) {
 
   router.get('/', async (req, res, next) => {
     try {
-      const items = await service.listForUser(req as any);
+      const items = await service.listForUser(req as AuthRequest);
       res.json(items);
     } catch (err) {
       next(err);
@@ -20,8 +21,11 @@ export default function cabinetRouter(prisma: PrismaClient) {
 
   router.post('/', authMiddleware.requireRole([Role.admin]), async (req, res, next) => {
     try {
-      const { name } = req.body;
-      const created = await service.createCabinet(name);
+      const parsed = createCabinetSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ message: 'Validation error', errors: parsed.error.flatten().fieldErrors });
+      }
+      const created = await service.createCabinet(parsed.data.name);
       res.json(created);
     } catch (err) {
       next(err);
@@ -30,8 +34,12 @@ export default function cabinetRouter(prisma: PrismaClient) {
 
   router.post('/:id/users', authMiddleware.requireRole([Role.admin]), async (req, res, next) => {
     try {
-      const { userId } = req.body;
-      const created = await service.assignUser(Number(req.params.id), userId);
+      const paramParsed = idParam.safeParse(req.params);
+      const bodyParsed = assignUserSchema.safeParse(req.body);
+      if (!paramParsed.success || !bodyParsed.success) {
+        return res.status(400).json({ message: 'Validation error' });
+      }
+      const created = await service.assignUser(Number(paramParsed.data.id), bodyParsed.data.userId);
       res.json(created);
     } catch (err) {
       next(err);

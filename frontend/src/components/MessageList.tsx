@@ -1,5 +1,7 @@
+import type { Message } from '../types';
+
 interface Props {
-  messages: any[];
+  messages: Message[];
 }
 
 export default function MessageList({ messages }: Props) {

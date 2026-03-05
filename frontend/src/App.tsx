@@ -5,16 +5,17 @@ import LoginForm from './components/LoginForm';
 import CabinetSelector from './components/CabinetSelector';
 import ChatPanel from './components/ChatPanel';
 import { ApiClient } from './api/client';
+import type { User, Cabinet, TelegramAccount } from './types';
 
 const api = new ApiClient();
 
 function App() {
   const [socket, setSocket] = useState<Socket | null>(null);
-  const [auth, setAuth] = useState<{ token: string; user: any } | null>(null);
-  const [cabinets, setCabinets] = useState<any[]>([]);
-  const [accounts, setAccounts] = useState<any[]>([]);
-  const [selectedAccount, setSelectedAccount] = useState<any | null>(null);
-  const [selectedCabinet, setSelectedCabinet] = useState<any | null>(null);
+  const [auth, setAuth] = useState<{ token: string; user: User } | null>(null);
+  const [cabinets, setCabinets] = useState<Cabinet[]>([]);
+  const [accounts, setAccounts] = useState<TelegramAccount[]>([]);
+  const [selectedAccount, setSelectedAccount] = useState<TelegramAccount | null>(null);
+  const [selectedCabinet, setSelectedCabinet] = useState<Cabinet | null>(null);
 
   useEffect(() => {
     if (!auth) return;
@@ -38,7 +39,7 @@ function App() {
       .catch(console.error);
   }, [auth]);
 
-  const handleLoggedIn = (token: string, user: any) => {
+  const handleLoggedIn = (token: string, user: User) => {
     setAuth({ token, user });
   };
 

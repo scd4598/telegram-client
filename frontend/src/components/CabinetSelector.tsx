@@ -1,9 +1,11 @@
+import type { Cabinet, TelegramAccount } from '../types';
+
 interface Props {
-  cabinets: any[];
-  accounts: any[];
-  onSelectCabinet: (cabinet: any) => void;
-  onSelectAccount: (account: any) => void;
-  selectedAccount: any | null;
+  cabinets: Cabinet[];
+  accounts: TelegramAccount[];
+  onSelectCabinet: (cabinet: Cabinet) => void;
+  onSelectAccount: (account: TelegramAccount) => void;
+  selectedAccount: TelegramAccount | null;
 }
 
 export default function CabinetSelector({ cabinets, accounts, onSelectCabinet, onSelectAccount, selectedAccount }: Props) {
