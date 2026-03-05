@@ -29,7 +29,7 @@ services:
       DATABASE_URL: postgresql://${POSTGRES_USER:-telegram}:${POSTGRES_PASSWORD:-telegram_secret}@postgres:5432/${POSTGRES_DB:-telegram_client}
       JWT_SECRET: ${JWT_SECRET:-change-me-to-a-random-string}
       PORT: 4000
-      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:3000}
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:5173}
       TELEGRAM_API_ID: ${TELEGRAM_API_ID}
       TELEGRAM_API_HASH: ${TELEGRAM_API_HASH}
     depends_on:
@@ -44,7 +44,7 @@ services:
         VITE_API_URL: ${VITE_API_URL:-http://localhost:4000}
     restart: unless-stopped
     ports:
-      - '3000:80'
+      - '5173:80'
     depends_on:
       - backend
 
